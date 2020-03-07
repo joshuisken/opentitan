@@ -92,6 +92,17 @@ static void print_usage(char *rfifo, char *wfifo, int n_bits) {
          wfifo);
 }
 
+static int mkfifo_possible(struct gpiodpi_ctx *ctx, char *cwd, const char *name) {
+  int path_len;
+  path_len = snprintf(ctx->dev_to_host_path, PATH_MAX, "%s/%s-read", cwd, name);
+  assert(path_len > 0 && path_len <= PATH_MAX);
+  ctx->dev_to_host_fifo = open_fifo(ctx->dev_to_host_path, O_RDWR);
+  if (ctx->dev_to_host_fifo < 0) {
+    return 0;
+  }
+  return 1;
+}
+
 void *gpiodpi_create(const char *name, int n_bits) {
   struct gpiodpi_ctx *ctx =
       (struct gpiodpi_ctx *)malloc(sizeof(struct gpiodpi_ctx));
@@ -108,6 +119,8 @@ void *gpiodpi_create(const char *name, int n_bits) {
   char *cwd = getcwd(cwd_buf, sizeof(cwd_buf));
   assert(cwd != NULL);
 
+  if (!mkfifo_possible(ctx, cwd, name))
+    cwd = "/tmp";
   int path_len;
   path_len = snprintf(ctx->dev_to_host_path, PATH_MAX, "%s/%s-read", cwd, name);
   assert(path_len > 0 && path_len <= PATH_MAX);

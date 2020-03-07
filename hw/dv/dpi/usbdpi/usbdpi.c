@@ -63,7 +63,18 @@ void *usbdpi_create(const char *name, int loglevel) {
   if (rv != 0) {
     fprintf(stderr, "USB: Unable to create FIFO at %s: %s\n",
             ctx->fifo_pathname, strerror(errno));
-    return NULL;
+    rv = snprintf(ctx->fifo_pathname, PATH_MAX, "%s/%s", "/tmp", name);
+    assert(rv <= PATH_MAX && rv > 0);
+    rv = unlink(ctx->fifo_pathname);
+    rv = mkfifo(ctx->fifo_pathname, 0644);  // writes are not supported currently
+    if (rv == 0) {
+      fprintf(stderr, "USB: Using %s instead.\n",
+	      ctx->fifo_pathname);
+    } else {
+      fprintf(stderr, "USB: Unable to create FIFO at %s: %s\n",
+	      ctx->fifo_pathname, strerror(errno));
+      return NULL;
+    }
   }
 
   ctx->fifo_fd = open(ctx->fifo_pathname, O_RDWR);
